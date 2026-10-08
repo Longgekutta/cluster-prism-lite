@@ -1,0 +1,37 @@
+{
+  "packet_id": "REV_17297477500",
+  "reason": "PHYSICAL_PROOF_PASSED",
+  "lifecycle_phase": "G6_EVIDENCE_VERIFIED",
+  "current_goal": "N/A",
+  "patch_metrics": {
+    "patch_path": "/root/10.2/cluster-prism-lite/.agent_lifecycle/candidate.patch",
+    "diff_bytes": 0,
+    "lines_added": 0,
+    "lines_removed": 0,
+    "has_changes": false
+  },
+  "evidence": {
+    "is_cleared": true,
+    "timestamp": 1791468116.8959901,
+    "execution_duration_sec": 15.501,
+    "oracle_cmd": "python -m unittest discover tests -v",
+    "exit_code": 0,
+    "stdout_tail": "",
+    "stderr_tail": "s.TestCronParse.test_invalid_raises) ... ok\ntest_parse_alias (test_triggers.TestCronParse.test_parse_alias) ... ok\ntest_parse_fixed (test_triggers.TestCronParse.test_parse_fixed) ... ok\ntest_parse_step (test_triggers.TestCronParse.test_parse_step) ... ok\ntest_start_stop (test_triggers.TestCronTrigger.test_start_stop) ... ok\ntest_emit_consume (test_triggers.TestTriggerBus.test_emit_consume) ... ok\n\n----------------------------------------------------------------------\nRan 76 tests in 10.715s\n\nOK\n",
+    "anti_tampering_passed": true,
+    "patch_metrics": {
+      "patch_path": "/root/10.2/cluster-prism-lite/.agent_lifecycle/candidate.patch",
+      "diff_bytes": 0,
+      "lines_added": 0,
+      "lines_removed": 0,
+      "has_changes": false
+    },
+    "tri_sieve_verdict": null,
+    "verdict": "PHYSICAL_PROOF_VALIDATED"
+  },
+  "commands": {
+    "inspect": "git diff HEAD",
+    "apply": "python main.py apply",
+    "discard": "python main.py discard"
+  }
+}

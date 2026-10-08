@@ -1,0 +1,6 @@
+{"timestamp": 1791467373.4899955, "from_state": "IDLE", "to_state": "G1_INTENT_GROUNDED", "updates_keys": ["goal", "intent_meta"]}
+{"timestamp": 1791467412.805706, "from_state": "G1_INTENT_GROUNDED", "to_state": "G2_PLAN_VALIDATED", "updates_keys": ["plan_meta"]}
+{"timestamp": 1791467424.114558, "from_state": "G2_PLAN_VALIDATED", "to_state": "G3_ORACLE_FROZEN", "updates_keys": ["oracle_meta"]}
+{"timestamp": 1791467429.251157, "from_state": "G3_ORACLE_FROZEN", "to_state": "G4_EXECUTING", "updates_keys": []}
+{"timestamp": 1791467429.4135048, "from_state": "G4_EXECUTING", "to_state": "G5_CHECKPOINT_SECURED", "updates_keys": ["checkpoint_meta", "active_task_id"]}
+{"timestamp": 1791468117.2458045, "from_state": "G5_CHECKPOINT_SECURED", "to_state": "G6_EVIDENCE_VERIFIED", "updates_keys": ["evidence_meta"]}

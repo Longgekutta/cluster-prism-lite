@@ -1,0 +1,17 @@
+{
+  "api_base": "https://api.deepseek.com/v1",
+  "models": {
+    "FLASH": "deepseek-chat",
+    "ELITE": "deepseek-reasoner"
+  },
+  "cron": {
+    "expr": "*/30 * * * *",
+    "task": "health probe"
+  },
+  "telegram_enabled": true,
+  "cache": {
+    "ttl_seconds": 3600,
+    "prefix_alignment_baseline": 2048,
+    "deterministic_temp_max": 0.25
+  }
+}
