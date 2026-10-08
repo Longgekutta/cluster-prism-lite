@@ -4,3 +4,4 @@
 {"timestamp": 1791467429.251157, "from_state": "G3_ORACLE_FROZEN", "to_state": "G4_EXECUTING", "updates_keys": []}
 {"timestamp": 1791467429.4135048, "from_state": "G4_EXECUTING", "to_state": "G5_CHECKPOINT_SECURED", "updates_keys": ["checkpoint_meta", "active_task_id"]}
 {"timestamp": 1791468117.2458045, "from_state": "G5_CHECKPOINT_SECURED", "to_state": "G6_EVIDENCE_VERIFIED", "updates_keys": ["evidence_meta"]}
+{"timestamp": 1791468139.437969, "from_state": "G6_EVIDENCE_VERIFIED", "to_state": "G7_REFLEXION_DISTILLED", "updates_keys": ["reflexion_meta"]}
