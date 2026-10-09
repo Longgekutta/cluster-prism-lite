@@ -8,3 +8,13 @@
 * **踩坑记录与避障反思 (Reflexion)**:
 
 ---
+
+## 📌 [2026-10-09 13:34:06] ADR-20261009_133406: 六边形架构升级：ModelPort 端口-适配器接入多厂商模
+
+* **业务目标与问题域**: 六边形架构升级：ModelPort 端口-适配器接入多厂商模型（litellm 包装适配器 + web-bridge 平级适配器），五条不变量契约测试红线（前缀字节级一致/单一序列化边界/禁内部重试/错误归一/幂等键透传），新增 ntfy 事件上报与多模型舰队注册表；既有全部优点一个不少，管线一行不改直到端口就绪
+* **核心架构设计决策**:
+  - [✓] 六边形架构升级完成：ModelPort 端口+规范化契约（frozen CanonicalRequest bytes 冻结）+五条不变量契约测试红线+多厂商适配器（UrllibAdapter 官方/Echo/WebBridge 逆向桥/注册表）+三层舰队配置+ntfy 事件上报；engine._raw_llm 走端口直连实测成功，缓存与幂等回归字节级一致；108 测试全绿，G6 防篡改通过，problem-optima 全部 COMMITTED
+  - [✓] 踩坑: 1) 契约测试对协议翻译型适配器应离线检查 build_request_body/build_headers，真实 invoke 会网络失败误判; 2) check_no_internal_retry 需 set_bottom 底层注入点且 send/invoke 双接口; 3) run_contract_suite 检查顺序：no_internal_retry 替换底层必须最后执行; 4) except 需具体类型（PRB-E108）；判空需 if 语句（PRB-E202）
+* **踩坑记录与避障反思 (Reflexion)**:
+
+---

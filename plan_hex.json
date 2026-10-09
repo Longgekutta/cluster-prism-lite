@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "h1_model_port",
+      "description": "实现 ModelPort 端口：Protocol 接口 + CanonicalRequest/Response（messages_bytes bytes 冻结、idempotency_key、trace_id）+ CanonicalError 归一；纯标准库",
+      "target_files": ["model_port.py", "tests/test_model_port.py"],
+      "oracle_cmd": "python -m unittest tests.test_model_port -v"
+    },
+    {
+      "id": "h2_contract_tests",
+      "description": "实现契约测试套件：前缀字节不变/单一序列化边界/禁内部重试/错误归一/幂等键透传 五条不变量断言，任何适配器的准入门槛",
+      "target_files": ["contract_tests.py", "tests/test_contract.py"],
+      "oracle_cmd": "python -m unittest tests.test_contract -v"
+    },
+    {
+      "id": "h3_adapters",
+      "description": "实现适配器层：UrllibAdapter（OpenAI 协议官方端点）、EchoAdapter（测试替身）、WebBridgeAdapter（网页逆向通道平级适配器骨架，HTTP POST 用户自建桥端点）、AdapterRegistry（model_id→adapter 映射+健康探测）",
+      "target_files": ["adapters.py", "tests/test_adapters.py"],
+      "oracle_cmd": "python -m unittest tests.test_adapters -v"
+    },
+    {
+      "id": "h4_fleet_config",
+      "description": "实现多模型舰队配置：config.json 扩展多厂商舰队（官方+逆向+中转三层），AdapterRegistry 接入 ModelFleet 健康约束",
+      "target_files": ["config.json", "fleet_setup.py", "tests/test_fleet_setup.py"],
+      "oracle_cmd": "python -m unittest tests.test_fleet_setup -v"
+    },
+    {
+      "id": "h5_ntfy",
+      "description": "实现 ntfy 事件上报：管线 FAIL/缓存命中/断路器熔断 事件 HTTP PUT 推送，未配置时优雅降级",
+      "target_files": ["notify.py", "tests/test_notify.py"],
+      "oracle_cmd": "python -m unittest tests.test_notify -v"
+    },
+    {
+      "id": "h6_engine_port",
+      "description": "engine 接入 ModelPort：_raw_llm 改走端口适配器（缓存仍在最前/路由元数据走参数/评审幂等三锁不变）， jurors 走端口",
+      "target_files": ["engine.py", "tests/test_engine.py"],
+      "oracle_cmd": "python -m unittest tests.test_engine -v"
+    },
+    {
+      "id": "h7_integration",
+      "description": "全管线集成回归：契约测试跑全部适配器 + 端到端多厂商分发 + 前缀字节回归 + 幂等回归",
+      "target_files": ["tests/test_hex_integration.py"],
+      "oracle_cmd": "python -m unittest discover tests -v"
+    }
+  ]
+}

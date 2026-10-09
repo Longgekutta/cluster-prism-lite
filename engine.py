@@ -105,11 +105,14 @@ class ClusterEngine:
                  cache: Optional[FiveTierCacheEngine] = None,
                  router: Optional[SmartRouter] = None,
                  fleet: Optional[ModelFleet] = None,
+                 registry: Optional[Any] = None,
                  workdir: str = "."):
         self.api_key = api_key if api_key is not None else resolve_api_key()
         self.cache = cache or FiveTierCacheEngine()
         self.fleet = fleet or ModelFleet()
-        # 默认舰队：FLASH + ELITE 双层
+        # 六边形端口：适配器注册表（model_id → adapter）
+        self.registry = registry
+        # 默认舰队：FLASH + ELITE 双层（保留原双层语义）
         if not self.fleet.models:
             self.fleet.register(DEFAULT_MODEL_FLASH, {"tier": Tier.FLASH.value, "elo": 100.0})
             self.fleet.register(DEFAULT_MODEL_ELITE, {"tier": Tier.ELITE.value, "elo": 130.0})
@@ -117,7 +120,25 @@ class ClusterEngine:
         self.checkpoints = GitCheckpointManager(workdir)
 
     def _raw_llm(self, model_id: str, messages: List[Dict[str, Any]]) -> str:
-        """底层 LLM 调用（jury 与管线共用）"""
+        """底层 LLM 调用：走 ModelPort 适配器（六边形端口），失败回退直连
+
+        三锁不变：缓存仍在最前（调用方 run 已保证）、路由元数据走参数、
+        评审幂等由 JuryCommittee 缓存键保证。
+        """
+        # 优先走端口适配器（多厂商归一）
+        if self.registry is not None:
+            adapter = self.registry.resolve(model_id)
+            from model_port import CanonicalRequest
+            import uuid
+            req = CanonicalRequest(
+                model_id=model_id,
+                messages_bytes=json.dumps(messages, ensure_ascii=False).encode("utf-8"),
+                idempotency_key=uuid.uuid5(uuid.NAMESPACE_URL, json.dumps(
+                    messages, ensure_ascii=False, sort_keys=True)).hex,
+                trace_id=uuid.uuid4().hex[:16],
+            )
+            return adapter.invoke(req).content
+        # 兜底：单供应商直连（测试 mock 场景保留）
         if not self.api_key:
             raise RuntimeError("DEEPSEEK_API_KEY 未配置（环境变量或 secret.env）")
         return llm_call_via_urllib(self.api_key, model_id, messages)

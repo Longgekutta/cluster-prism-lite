@@ -1,97 +1,68 @@
 {
   "current_state": "G7_REFLEXION_DISTILLED",
-  "goal": "cluster-prism-lite: 单进程 asyncio Python 多模型 AI 集群编排引擎，保留老集群全部优点（7阶管线/五阶前缀缓存/语义分级路由/帕累托分发/jury评审/git checkpoint回滚/AST预检/TDD沙箱/cron触发/Telegram渠道），替代 n8n+OpenClaw 底盘且负载更低；纯标准库优先，无 UI",
+  "goal": "六边形架构升级：ModelPort 端口-适配器接入多厂商模型（litellm 包装适配器 + web-bridge 平级适配器），五条不变量契约测试红线（前缀字节级一致/单一序列化边界/禁内部重试/错误归一/幂等键透传），新增 ntfy 事件上报与多模型舰队注册表；既有全部优点一个不少，管线一行不改直到端口就绪",
   "plan_meta": {
     "status": "VALIDATED",
-    "total_tasks": 11,
+    "total_tasks": 7,
     "topological_sequence": [
-      "t1_cache_engine",
-      "t2_smart_router",
-      "t3_jury",
-      "t4_checkpoint",
-      "t5_ast_precheck",
-      "t6_tdd_sandbox",
-      "t7_triggers",
-      "t8_channel_bot",
-      "t9_engine",
-      "t10_facade",
-      "t11_integration"
+      "h1_model_port",
+      "h2_contract_tests",
+      "h3_adapters",
+      "h4_fleet_config",
+      "h5_ntfy",
+      "h6_engine_port",
+      "h7_integration"
     ],
     "tasks": [
       {
-        "id": "t1_cache_engine",
-        "description": "实现五阶前缀缓存引擎：阶段I磁盘SHA-256哈希直返、阶段II前缀2048对齐、阶段III会话前缀管理、阶段IV语义去重、阶段V金丝雀审计；纯标准库",
+        "id": "h1_model_port",
+        "description": "实现 ModelPort 端口：Protocol 接口 + CanonicalRequest/Response（messages_bytes bytes 冻结、idempotency_key、trace_id）+ CanonicalError 归一；纯标准库",
         "target_files": [
-          "cache_engine.py",
-          "tests/test_cache.py"
+          "model_port.py",
+          "tests/test_model_port.py"
         ],
-        "oracle_cmd": "python -m unittest tests.test_cache -v"
+        "oracle_cmd": "python -m unittest tests.test_model_port -v"
       },
       {
-        "id": "t2_smart_router",
-        "description": "实现语义分级路由与约束帕累托分发：FLASH/ELITE 双层分级、候选集⊆存活舰队、断路器半开自愈；纯标准库",
+        "id": "h2_contract_tests",
+        "description": "实现契约测试套件：前缀字节不变/单一序列化边界/禁内部重试/错误归一/幂等键透传 五条不变量断言，任何适配器的准入门槛",
         "target_files": [
-          "smart_router.py",
-          "tests/test_router.py"
+          "contract_tests.py",
+          "tests/test_contract.py"
         ],
-        "oracle_cmd": "python -m unittest tests.test_router -v"
+        "oracle_cmd": "python -m unittest tests.test_contract -v"
       },
       {
-        "id": "t3_jury",
-        "description": "实现多模型 jury 评审委员会：幂等调用 temperature=0、缓存键 (prompt_hash, model_id)、双层 jury 与 quorum",
+        "id": "h3_adapters",
+        "description": "实现适配器层：UrllibAdapter（OpenAI 协议官方端点）、EchoAdapter（测试替身）、WebBridgeAdapter（网页逆向通道平级适配器骨架，HTTP POST 用户自建桥端点）、AdapterRegistry（model_id→adapter 映射+健康探测）",
         "target_files": [
-          "jury.py",
-          "tests/test_jury.py"
+          "adapters.py",
+          "tests/test_adapters.py"
         ],
-        "oracle_cmd": "python -m unittest tests.test_jury -v"
+        "oracle_cmd": "python -m unittest tests.test_adapters -v"
       },
       {
-        "id": "t4_checkpoint",
-        "description": "实现 git checkpoint 事务快照与一键回滚：会话状态唯一真相源，纯 subprocess 调 git",
+        "id": "h4_fleet_config",
+        "description": "实现多模型舰队配置：config.json 扩展多厂商舰队（官方+逆向+中转三层），AdapterRegistry 接入 ModelFleet 健康约束",
         "target_files": [
-          "checkpoint.py",
-          "tests/test_checkpoint.py"
+          "config.json",
+          "fleet_setup.py",
+          "tests/test_fleet_setup.py"
         ],
-        "oracle_cmd": "python -m unittest tests.test_checkpoint -v"
+        "oracle_cmd": "python -m unittest tests.test_fleet_setup -v"
       },
       {
-        "id": "t5_ast_precheck",
-        "description": "实现 AST 语法编译预检：py_compile/ast.parse 拦截语法崩坏，负向不变量检查（禁裸except/禁通配导入/禁硬编码密钥）",
+        "id": "h5_ntfy",
+        "description": "实现 ntfy 事件上报：管线 FAIL/缓存命中/断路器熔断 事件 HTTP PUT 推送，未配置时优雅降级",
         "target_files": [
-          "ast_precheck.py",
-          "tests/test_ast_precheck.py"
+          "notify.py",
+          "tests/test_notify.py"
         ],
-        "oracle_cmd": "python -m unittest tests.test_ast_precheck -v"
+        "oracle_cmd": "python -m unittest tests.test_notify -v"
       },
       {
-        "id": "t6_tdd_sandbox",
-        "description": "实现 TDD 沙箱验证：subprocess 隔离运行测试神谕，30s 硬超时强杀，退出码判据",
-        "target_files": [
-          "tdd_sandbox.py",
-          "tests/test_tdd_sandbox.py"
-        ],
-        "oracle_cmd": "python -m unittest tests.test_tdd_sandbox -v"
-      },
-      {
-        "id": "t7_triggers",
-        "description": "实现触发层：asyncio 原生 cron 定时器 + 统一 TriggerEvent{source, session_id, payload} 队列，纯标准库无第三方",
-        "target_files": [
-          "triggers.py",
-          "tests/test_triggers.py"
-        ],
-        "oracle_cmd": "python -m unittest tests.test_triggers -v"
-      },
-      {
-        "id": "t8_channel_bot",
-        "description": "实现 Telegram 渠道层：urllib 长轮询 getUpdates，消息→TriggerEvent，与触发层共用事件循环；无 token 时优雅降级",
-        "target_files": [
-          "channel_bot.py"
-        ],
-        "oracle_cmd": "python -c \"import ast; ast.parse(open('channel_bot.py').read())\""
-      },
-      {
-        "id": "t9_engine",
-        "description": "实现 7 阶编排引擎核心：意图→分级→上下文对齐→checkpoint→分发→执行→验收闭环，串联 cache/router/jury/checkpoint/ast/tdd 各模块",
+        "id": "h6_engine_port",
+        "description": "engine 接入 ModelPort：_raw_llm 改走端口适配器（缓存仍在最前/路由元数据走参数/评审幂等三锁不变）， jurors 走端口",
         "target_files": [
           "engine.py",
           "tests/test_engine.py"
@@ -99,26 +70,12 @@
         "oracle_cmd": "python -m unittest tests.test_engine -v"
       },
       {
-        "id": "t10_facade",
-        "description": "实现 UCFS 门面：main.py 调度中枢入口、config.json、run.sh/run.bat/run.ps1/justfile/README",
+        "id": "h7_integration",
+        "description": "全管线集成回归：契约测试跑全部适配器 + 端到端多厂商分发 + 前缀字节回归 + 幂等回归",
         "target_files": [
-          "main.py",
-          "config.json",
-          "run.sh",
-          "run.bat",
-          "run.ps1",
-          "justfile",
-          "README.md"
+          "tests/test_hex_integration.py"
         ],
-        "oracle_cmd": "python -c \"import ast; ast.parse(open('main.py').read())\""
-      },
-      {
-        "id": "t11_integration",
-        "description": "全管线集成测试：mock 模型端到端 7 阶管线、缓存命中、路由分发、checkpoint 回滚",
-        "target_files": [
-          "tests/test_pipeline.py"
-        ],
-        "oracle_cmd": "python -m unittest tests.test_pipeline -v"
+        "oracle_cmd": "python -m unittest discover tests -v"
       }
     ],
     "is_acyclic_dag": true
@@ -130,50 +87,58 @@
     "test_file_hashes": {},
     "pre_execution_red_state_verified": true,
     "initial_exit_code": 1,
-    "initial_stderr_sample": "Traceback (most recent call last):\n  File \"<frozen runpy>\", line 203, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/data/data/com.termux/files/usr/lib/python3.14/unittest/__main__.py\", line 18, in <module>\n    main(module=None)\n    ~~~~^^^^^^^^^^^^^\n  File \"/data/dat",
-    "wall_latency_ms": 2596.59
+    "initial_stderr_sample": "test_adapters (unittest.loader._FailedTest.test_adapters) ... ERROR\ntest_bare_except_flagged (test_ast_precheck.TestNegativeInvariants.test_bare_except_flagged)\nPRB-E108 裸 except 吞异常 ... ok\ntest_hardcoded_secret_flagged (test_ast_precheck.TestNegativeInvariants.test_hardcoded_secret_flagged)\nPRB-E50",
+    "wall_latency_ms": 16389.83
   },
   "checkpoint_meta": {
     "status": "CHECKPOINT_SECURED",
-    "checkpoint_id": "chkpt_cluster-prism-lite-initial_1791467429",
-    "timestamp": 1791467429,
-    "step_name": "cluster-prism-lite-initial",
-    "base_head_sha": "NO_COMMITS_YET",
-    "pre_existing_uncommitted_count": 2,
+    "checkpoint_id": "chkpt_hexagonal-upgrade_1791521860",
+    "timestamp": 1791521860,
+    "step_name": "hexagonal-upgrade",
+    "base_head_sha": "102ce6482dcb5978c1670b06e34a51445a4bd575",
+    "pre_existing_uncommitted_count": 13,
     "uncommitted_files": [
-      "?? .agent_lifecycle/",
-      "?? plan.json"
+      "M .agent_lifecycle/history.jsonl",
+      "M .agent_lifecycle/state.json",
+      "?? plan_hex.json",
+      "?? tests/__pycache__/test_adapters.cpython-314.pyc",
+      "?? tests/__pycache__/test_contract.cpython-314.pyc",
+      "?? tests/__pycache__/test_fleet_setup.cpython-314.pyc",
+      "?? tests/__pycache__/test_model_port.cpython-314.pyc",
+      "?? tests/__pycache__/test_notify.cpython-314.pyc",
+      "?? tests/test_adapters.py",
+      "?? tests/test_contract.py"
     ]
   },
   "evidence_meta": {
     "is_cleared": true,
-    "timestamp": 1791468116.8959901,
-    "execution_duration_sec": 15.501,
+    "timestamp": 1791523823.9829614,
+    "execution_duration_sec": 17.876,
     "oracle_cmd": "python -m unittest discover tests -v",
     "exit_code": 0,
     "stdout_tail": "",
-    "stderr_tail": "s.TestCronParse.test_invalid_raises) ... ok\ntest_parse_alias (test_triggers.TestCronParse.test_parse_alias) ... ok\ntest_parse_fixed (test_triggers.TestCronParse.test_parse_fixed) ... ok\ntest_parse_step (test_triggers.TestCronParse.test_parse_step) ... ok\ntest_start_stop (test_triggers.TestCronTrigger.test_start_stop) ... ok\ntest_emit_consume (test_triggers.TestTriggerBus.test_emit_consume) ... ok\n\n----------------------------------------------------------------------\nRan 76 tests in 10.715s\n\nOK\n",
+    "stderr_tail": ".TestCronParse.test_invalid_raises) ... ok\ntest_parse_alias (test_triggers.TestCronParse.test_parse_alias) ... ok\ntest_parse_fixed (test_triggers.TestCronParse.test_parse_fixed) ... ok\ntest_parse_step (test_triggers.TestCronParse.test_parse_step) ... ok\ntest_start_stop (test_triggers.TestCronTrigger.test_start_stop) ... ok\ntest_emit_consume (test_triggers.TestTriggerBus.test_emit_consume) ... ok\n\n----------------------------------------------------------------------\nRan 108 tests in 13.011s\n\nOK\n",
     "anti_tampering_passed": true,
     "patch_metrics": {
       "patch_path": "/root/10.2/cluster-prism-lite/.agent_lifecycle/candidate.patch",
-      "diff_bytes": 0,
-      "lines_added": 0,
-      "lines_removed": 0,
-      "has_changes": false
+      "diff_bytes": 17640,
+      "lines_added": 107,
+      "lines_removed": 100,
+      "has_changes": true
     },
     "tri_sieve_verdict": null,
     "verdict": "PHYSICAL_PROOF_VALIDATED"
   },
-  "last_updated": 1791468139.4301577,
+  "last_updated": 1791524046.108038,
   "intent_meta": {
-    "raw_prompt": "cluster-prism-lite: 单进程 asyncio Python 多模型 AI 集群编排引擎，保留老集群全部优点（7阶管线/五阶前缀缓存/语义分级路由/帕累托分发/jury评审/git checkpoint回滚/AST预检/TDD沙箱/cron触发/Telegram渠道），替代 n8n+OpenClaw 底盘且负载更低；纯标准库优先，无 UI",
-    "pure_problem_goal": "cluster-prism-lite: 单进程 asyncio Python 多模型 AI 集群编排引擎，保留老集群全部优点（7阶管线/五阶前缀缓存/语义分级路由/帕累托分发/jury评审/git checkpoint回滚/AST预检/TDD沙箱/cron触发/Telegram渠道），替代 n8n+OpenClaw 底盘且负载更低；纯标准库优先，无 UI",
+    "raw_prompt": "六边形架构升级：ModelPort 端口-适配器接入多厂商模型（litellm 包装适配器 + web-bridge 平级适配器），五条不变量契约测试红线（前缀字节级一致/单一序列化边界/禁内部重试/错误归一/幂等键透传），新增 ntfy 事件上报与多模型舰队注册表；既有全部优点一个不少，管线一行不改直到端口就绪",
+    "pure_problem_goal": "六边形架构升级：ModelPort 端口-适配器接入多厂商模型（litellm 包装适配器 + web-bridge 平级适配器），五条不变量契约测试红线（前缀字节级一致/单一序列化边界/禁内部重试/错误归一/幂等键透传），新增 ntfy 事件上报与多模型舰队注册表；既有全部优点一个不少，管线一行不改直到端口就绪",
     "has_solution_bias": false,
     "detected_biases": [],
     "explicit_invariants": [],
     "status": "GROUNDED"
   },
-  "active_task_id": "cluster-prism-lite-initial",
+  "active_task_id": "hexagonal-upgrade",
   "reflexion_meta": {
     "status": "REFLEXION_DISTILLED",
     "adr_file": "/root/10.2/cluster-prism-lite/docs/ADR_LEDGER.md",
