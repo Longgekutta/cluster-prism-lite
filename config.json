@@ -5,16 +5,55 @@
     "ELITE": "deepseek-reasoner"
   },
   "fleet": [
-    {"model_id": "deepseek-flash", "source": "official", "tier": "FLASH", "elo": 100.0,
-     "adapter": {"kind": "openai", "api_base": "https://api.deepseek.com/v1"}},
-    {"model_id": "deepseek-reasoner", "source": "official", "tier": "ELITE", "elo": 130.0,
-     "adapter": {"kind": "openai", "api_base": "https://api.deepseek.com/v1"}},
-    {"model_id": "gpt-web-bridge", "source": "bridge", "tier": "ELITE", "elo": 125.0,
-     "adapter": {"kind": "bridge", "endpoint": "http://127.0.0.1:8005/v1/chat/completions"}},
-    {"model_id": "claude-web-bridge", "source": "bridge", "tier": "ELITE", "elo": 125.0,
-     "adapter": {"kind": "bridge", "endpoint": "http://127.0.0.1:8006/v1/chat/completions"}},
-    {"model_id": "echo-test", "source": "test", "tier": "FLASH", "elo": 10.0,
-     "adapter": {"kind": "echo"}}
+    {
+      "model_id": "deepseek-flash",
+      "source": "official",
+      "tier": "FLASH",
+      "elo": 100.0,
+      "adapter": {
+        "kind": "openai",
+        "api_base": "https://api.deepseek.com/v1"
+      }
+    },
+    {
+      "model_id": "deepseek-reasoner",
+      "source": "official",
+      "tier": "ELITE",
+      "elo": 130.0,
+      "adapter": {
+        "kind": "openai",
+        "api_base": "https://api.deepseek.com/v1"
+      }
+    },
+    {
+      "model_id": "gpt-web-bridge",
+      "source": "bridge",
+      "tier": "ELITE",
+      "elo": 125.0,
+      "adapter": {
+        "kind": "bridge",
+        "endpoint": "http://127.0.0.1:8005/v1/chat/completions"
+      }
+    },
+    {
+      "model_id": "claude-web-bridge",
+      "source": "bridge",
+      "tier": "ELITE",
+      "elo": 125.0,
+      "adapter": {
+        "kind": "bridge",
+        "endpoint": "http://127.0.0.1:8006/v1/chat/completions"
+      }
+    },
+    {
+      "model_id": "echo-test",
+      "source": "test",
+      "tier": "FLASH",
+      "elo": 10.0,
+      "adapter": {
+        "kind": "echo"
+      }
+    }
   ],
   "cron": {
     "expr": "*/30 * * * *",
@@ -29,5 +68,20 @@
     "ttl_seconds": 3600,
     "prefix_alignment_baseline": 2048,
     "deterministic_temp_max": 0.25
+  },
+  "platforms": {
+    "senseaudio": {
+      "api_base": "https://api.senseaudio.cn",
+      "models_endpoint": "/v1/models",
+      "note": "mode 字段区分 llm(文本)/stt/tts/voice 等；文本模型自动入舰队"
+    }
+  },
+  "leaderboard": {
+    "sources": [
+      "openrouter",
+      "models_dev"
+    ],
+    "ttl_seconds": 3600,
+    "note": "lmarena/huggingface 被墙 → openrouter artificial_analysis 指数 + models.dev 元数据 + 静态快照兜底"
   }
 }

@@ -12,3 +12,10 @@
 {"timestamp": 1791521860.772243, "from_state": "G4_EXECUTING", "to_state": "G5_CHECKPOINT_SECURED", "updates_keys": ["checkpoint_meta", "active_task_id"]}
 {"timestamp": 1791523824.4100432, "from_state": "G5_CHECKPOINT_SECURED", "to_state": "G6_EVIDENCE_VERIFIED", "updates_keys": ["evidence_meta"]}
 {"timestamp": 1791524046.113862, "from_state": "G6_EVIDENCE_VERIFIED", "to_state": "G7_REFLEXION_DISTILLED", "updates_keys": ["reflexion_meta"]}
+{"timestamp": 1791607649.6746528, "from_state": "G7_REFLEXION_DISTILLED", "to_state": "G1_INTENT_GROUNDED", "updates_keys": ["goal", "intent_meta"]}
+{"timestamp": 1791607692.9787924, "from_state": "G1_INTENT_GROUNDED", "to_state": "G2_PLAN_VALIDATED", "updates_keys": ["plan_meta"]}
+{"timestamp": 1791607707.8460126, "from_state": "G2_PLAN_VALIDATED", "to_state": "G3_ORACLE_FROZEN", "updates_keys": ["oracle_meta"]}
+{"timestamp": 1791607709.4490504, "from_state": "G3_ORACLE_FROZEN", "to_state": "G4_EXECUTING", "updates_keys": []}
+{"timestamp": 1791607709.7539957, "from_state": "G4_EXECUTING", "to_state": "G5_CHECKPOINT_SECURED", "updates_keys": ["checkpoint_meta", "active_task_id"]}
+{"timestamp": 1791608154.2923687, "from_state": "G5_CHECKPOINT_SECURED", "to_state": "G6_EVIDENCE_VERIFIED", "updates_keys": ["evidence_meta"]}
+{"timestamp": 1791608176.5886426, "from_state": "G6_EVIDENCE_VERIFIED", "to_state": "G7_REFLEXION_DISTILLED", "updates_keys": ["reflexion_meta"]}

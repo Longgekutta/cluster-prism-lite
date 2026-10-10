@@ -18,3 +18,13 @@
 * **踩坑记录与避障反思 (Reflexion)**:
 
 ---
+
+## 📌 [2026-10-10 12:56:16] ADR-20261010_125616: 新增 leaderboard.py 多源全球排行榜获取（op
+
+* **业务目标与问题域**: 新增 leaderboard.py 多源全球排行榜获取（openrouter artificial_analysis 智能指数 + models.dev 模型元数据 + 静态快照兜底，修复 lmarena/huggingface 被墙导致的天梯不可用）；新增 model_discovery.py 自动发现模型并区分文本模型与语音/多模态模型（mode 字段过滤）；新增 SenseAudioAdapter 接入 api.senseaudio.cn（与路由分发严格分模块：发现/接入在 discovery+adapters，用哪个模型干什么在 smart_router）；飞书/Obsidian 生态接口勘探交付选型矩阵
+* **核心架构设计决策**:
+  - [✓] SENSE AUDIO 接入完成：model_discovery 自动发现33模型并区分10文本/23语音多模态；SenseAudioAdapter 过契约红线接入 api.senseaudio.cn；leaderboard.py 多源全球排行榜修复（lmarena/hf被墙→openrouter artificial_analysis 284收录+models.dev+静态兜底+别名后缀匹配）；接入/发现/路由三模块严格解耦；136测试全绿 G6通过 实测全链路成功
+  - [✓] 踩坑: 1) senseaudio models 端点是 /v1/models 非 /models，fetch 需归一 base; 2) openrouter 收录名带供应商前缀(deepseek/deepseek-v4.1-flash)，elo_for 需别名后缀匹配; 3) mock 网络测试必须包住整个 run 而非只包 _raw_llm
+* **踩坑记录与避障反思 (Reflexion)**:
+
+---

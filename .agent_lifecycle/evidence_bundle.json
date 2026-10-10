@@ -1,17 +1,17 @@
 {
   "is_cleared": true,
-  "timestamp": 1791524035.6561663,
-  "execution_duration_sec": 18.672,
+  "timestamp": 1791608153.8063595,
+  "execution_duration_sec": 36.03,
   "oracle_cmd": "python -m unittest discover tests -v",
   "exit_code": 0,
   "stdout_tail": "",
-  "stderr_tail": ".TestCronParse.test_invalid_raises) ... ok\ntest_parse_alias (test_triggers.TestCronParse.test_parse_alias) ... ok\ntest_parse_fixed (test_triggers.TestCronParse.test_parse_fixed) ... ok\ntest_parse_step (test_triggers.TestCronParse.test_parse_step) ... ok\ntest_start_stop (test_triggers.TestCronTrigger.test_start_stop) ... ok\ntest_emit_consume (test_triggers.TestTriggerBus.test_emit_consume) ... ok\n\n----------------------------------------------------------------------\nRan 108 tests in 13.352s\n\nOK\n",
+  "stderr_tail": ".TestCronParse.test_invalid_raises) ... ok\ntest_parse_alias (test_triggers.TestCronParse.test_parse_alias) ... ok\ntest_parse_fixed (test_triggers.TestCronParse.test_parse_fixed) ... ok\ntest_parse_step (test_triggers.TestCronParse.test_parse_step) ... ok\ntest_start_stop (test_triggers.TestCronTrigger.test_start_stop) ... ok\ntest_emit_consume (test_triggers.TestTriggerBus.test_emit_consume) ... ok\n\n----------------------------------------------------------------------\nRan 136 tests in 30.794s\n\nOK\n",
   "anti_tampering_passed": true,
   "patch_metrics": {
     "patch_path": "/root/10.2/cluster-prism-lite/.agent_lifecycle/candidate.patch",
-    "diff_bytes": 62675,
-    "lines_added": 700,
-    "lines_removed": 126,
+    "diff_bytes": 16808,
+    "lines_added": 140,
+    "lines_removed": 81,
     "has_changes": true
   },
   "tri_sieve_verdict": null,

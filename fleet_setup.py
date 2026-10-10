@@ -88,3 +88,24 @@ def build_fleet_from_config(cfg: Dict[str, Any],
                              "elo": float(entry.get("elo", 0.0)),
                              "source": entry.get("source", "official")})
     return registry, fleet
+
+
+def refresh_elo_from_leaderboard(fleet: ModelFleet, fetcher: Any = None,
+                                 default_elo: float = 1250.0) -> int:
+    """用 live 排行榜刷新舰队 ELO 分值（帕累托分发的输入）
+
+    职责边界：本函数只负责"分数从哪来"，"用哪个模型"仍由 smart_router 帕累托求解。
+      - 收录模型：ELO 刷新为排行榜值
+      - 未收录模型：保持 default（不猜测高分）
+      - 排行榜被墙：fetcher 内部降级静态快照，不崩溃
+    返回刷新的模型数。
+    """
+    if fetcher is None:
+        from leaderboard import LeaderboardFetcher
+        fetcher = LeaderboardFetcher()
+    refreshed = 0
+    for mid in fleet.models:
+        elo = fetcher.elo_for(mid, default=default_elo)
+        fleet.models[mid]["elo"] = elo
+        refreshed += 1
+    return refreshed

@@ -1,79 +1,59 @@
 {
   "current_state": "G7_REFLEXION_DISTILLED",
-  "goal": "六边形架构升级：ModelPort 端口-适配器接入多厂商模型（litellm 包装适配器 + web-bridge 平级适配器），五条不变量契约测试红线（前缀字节级一致/单一序列化边界/禁内部重试/错误归一/幂等键透传），新增 ntfy 事件上报与多模型舰队注册表；既有全部优点一个不少，管线一行不改直到端口就绪",
+  "goal": "新增 leaderboard.py 多源全球排行榜获取（openrouter artificial_analysis 智能指数 + models.dev 模型元数据 + 静态快照兜底，修复 lmarena/huggingface 被墙导致的天梯不可用）；新增 model_discovery.py 自动发现模型并区分文本模型与语音/多模态模型（mode 字段过滤）；新增 SenseAudioAdapter 接入 api.senseaudio.cn（与路由分发严格分模块：发现/接入在 discovery+adapters，用哪个模型干什么在 smart_router）；飞书/Obsidian 生态接口勘探交付选型矩阵",
   "plan_meta": {
     "status": "VALIDATED",
-    "total_tasks": 7,
+    "total_tasks": 5,
     "topological_sequence": [
-      "h1_model_port",
-      "h2_contract_tests",
-      "h3_adapters",
-      "h4_fleet_config",
-      "h5_ntfy",
-      "h6_engine_port",
-      "h7_integration"
+      "l1_leaderboard",
+      "l2_discovery",
+      "l3_senseaudio_adapter",
+      "l4_router_enrich",
+      "l5_integration"
     ],
     "tasks": [
       {
-        "id": "h1_model_port",
-        "description": "实现 ModelPort 端口：Protocol 接口 + CanonicalRequest/Response（messages_bytes bytes 冻结、idempotency_key、trace_id）+ CanonicalError 归一；纯标准库",
+        "id": "l1_leaderboard",
+        "description": "实现 leaderboard.py 多源全球排行榜：openrouter /models 的 artificial_analysis 智能指数（284 个有分）+ models.dev api.json 元数据（226 供应商）+ 静态快照兜底 + TTL 缓存，修复 lmarena/huggingface 被墙",
         "target_files": [
-          "model_port.py",
-          "tests/test_model_port.py"
+          "leaderboard.py",
+          "tests/test_leaderboard.py"
         ],
-        "oracle_cmd": "python -m unittest tests.test_model_port -v"
+        "oracle_cmd": "python -m unittest tests.test_leaderboard -v"
       },
       {
-        "id": "h2_contract_tests",
-        "description": "实现契约测试套件：前缀字节不变/单一序列化边界/禁内部重试/错误归一/幂等键透传 五条不变量断言，任何适配器的准入门槛",
+        "id": "l2_discovery",
+        "description": "实现 model_discovery.py：/v1/models 自动发现模型，按 mode 字段区分文本模型(llm/text)与语音/多模态模型(stt/tts/voice_*/image/video/music)，纯函数过滤",
         "target_files": [
-          "contract_tests.py",
-          "tests/test_contract.py"
+          "model_discovery.py",
+          "tests/test_model_discovery.py"
         ],
-        "oracle_cmd": "python -m unittest tests.test_contract -v"
+        "oracle_cmd": "python -m unittest tests.test_model_discovery -v"
       },
       {
-        "id": "h3_adapters",
-        "description": "实现适配器层：UrllibAdapter（OpenAI 协议官方端点）、EchoAdapter（测试替身）、WebBridgeAdapter（网页逆向通道平级适配器骨架，HTTP POST 用户自建桥端点）、AdapterRegistry（model_id→adapter 映射+健康探测）",
+        "id": "l3_senseaudio_adapter",
+        "description": "实现 SenseAudioAdapter（OpenAI 协议 api.senseaudio.cn）+ 舰队装配：发现→接入在 discovery+adapters 层，用哪个模型干什么在 smart_router 层，严格分模块不耦合",
         "target_files": [
-          "adapters.py",
-          "tests/test_adapters.py"
-        ],
-        "oracle_cmd": "python -m unittest tests.test_adapters -v"
-      },
-      {
-        "id": "h4_fleet_config",
-        "description": "实现多模型舰队配置：config.json 扩展多厂商舰队（官方+逆向+中转三层），AdapterRegistry 接入 ModelFleet 健康约束",
-        "target_files": [
-          "config.json",
+          "senseaudio_adapter.py",
           "fleet_setup.py",
-          "tests/test_fleet_setup.py"
+          "tests/test_senseaudio.py"
         ],
-        "oracle_cmd": "python -m unittest tests.test_fleet_setup -v"
+        "oracle_cmd": "python -m unittest tests.test_senseaudio -v"
       },
       {
-        "id": "h5_ntfy",
-        "description": "实现 ntfy 事件上报：管线 FAIL/缓存命中/断路器熔断 事件 HTTP PUT 推送，未配置时优雅降级",
+        "id": "l4_router_enrich",
+        "description": "smart_router 接入 live 排行榜：帕累托分发的 ELO 分值自动从 leaderboard 刷新（先本地快照，后台刷新，被墙时降级静态）",
         "target_files": [
-          "notify.py",
-          "tests/test_notify.py"
+          "smart_router.py",
+          "tests/test_router_enrich.py"
         ],
-        "oracle_cmd": "python -m unittest tests.test_notify -v"
+        "oracle_cmd": "python -m unittest tests.test_router_enrich -v"
       },
       {
-        "id": "h6_engine_port",
-        "description": "engine 接入 ModelPort：_raw_llm 改走端口适配器（缓存仍在最前/路由元数据走参数/评审幂等三锁不变）， jurors 走端口",
+        "id": "l5_integration",
+        "description": "集成回归：SENSE AUDIO 实测发现→接入→文本模型路由分发全链路 + 全量测试绿",
         "target_files": [
-          "engine.py",
-          "tests/test_engine.py"
-        ],
-        "oracle_cmd": "python -m unittest tests.test_engine -v"
-      },
-      {
-        "id": "h7_integration",
-        "description": "全管线集成回归：契约测试跑全部适配器 + 端到端多厂商分发 + 前缀字节回归 + 幂等回归",
-        "target_files": [
-          "tests/test_hex_integration.py"
+          "tests/test_sa_integration.py"
         ],
         "oracle_cmd": "python -m unittest discover tests -v"
       }
@@ -87,58 +67,57 @@
     "test_file_hashes": {},
     "pre_execution_red_state_verified": true,
     "initial_exit_code": 1,
-    "initial_stderr_sample": "test_adapters (unittest.loader._FailedTest.test_adapters) ... ERROR\ntest_bare_except_flagged (test_ast_precheck.TestNegativeInvariants.test_bare_except_flagged)\nPRB-E108 裸 except 吞异常 ... ok\ntest_hardcoded_secret_flagged (test_ast_precheck.TestNegativeInvariants.test_hardcoded_secret_flagged)\nPRB-E50",
-    "wall_latency_ms": 16389.83
+    "initial_stderr_sample": "test_registry_health_probe (test_adapters.TestContractViaRegistry.test_registry_health_probe) ... ok\ntest_registry_list (test_adapters.TestContractViaRegistry.test_registry_list) ... ok\ntest_registry_resolves_model (test_adapters.TestContractViaRegistry.test_registry_resolves_model) ... ok\ntest_regi",
+    "wall_latency_ms": 11934.96
   },
   "checkpoint_meta": {
     "status": "CHECKPOINT_SECURED",
-    "checkpoint_id": "chkpt_hexagonal-upgrade_1791521860",
-    "timestamp": 1791521860,
-    "step_name": "hexagonal-upgrade",
-    "base_head_sha": "102ce6482dcb5978c1670b06e34a51445a4bd575",
-    "pre_existing_uncommitted_count": 13,
+    "checkpoint_id": "chkpt_senseaudio-leaderboard_1791607709",
+    "timestamp": 1791607709,
+    "step_name": "senseaudio-leaderboard",
+    "base_head_sha": "7a12c279fcb6c2cbf9b3b73fe94f79183f9fe790",
+    "pre_existing_uncommitted_count": 9,
     "uncommitted_files": [
       "M .agent_lifecycle/history.jsonl",
       "M .agent_lifecycle/state.json",
-      "?? plan_hex.json",
-      "?? tests/__pycache__/test_adapters.cpython-314.pyc",
-      "?? tests/__pycache__/test_contract.cpython-314.pyc",
-      "?? tests/__pycache__/test_fleet_setup.cpython-314.pyc",
-      "?? tests/__pycache__/test_model_port.cpython-314.pyc",
-      "?? tests/__pycache__/test_notify.cpython-314.pyc",
-      "?? tests/test_adapters.py",
-      "?? tests/test_contract.py"
+      "?? plan_sa.json",
+      "?? tests/__pycache__/test_leaderboard.cpython-314.pyc",
+      "?? tests/__pycache__/test_model_discovery.cpython-314.pyc",
+      "?? tests/__pycache__/test_senseaudio.cpython-314.pyc",
+      "?? tests/test_leaderboard.py",
+      "?? tests/test_model_discovery.py",
+      "?? tests/test_senseaudio.py"
     ]
   },
   "evidence_meta": {
     "is_cleared": true,
-    "timestamp": 1791523823.9829614,
-    "execution_duration_sec": 17.876,
+    "timestamp": 1791608153.8063595,
+    "execution_duration_sec": 36.03,
     "oracle_cmd": "python -m unittest discover tests -v",
     "exit_code": 0,
     "stdout_tail": "",
-    "stderr_tail": ".TestCronParse.test_invalid_raises) ... ok\ntest_parse_alias (test_triggers.TestCronParse.test_parse_alias) ... ok\ntest_parse_fixed (test_triggers.TestCronParse.test_parse_fixed) ... ok\ntest_parse_step (test_triggers.TestCronParse.test_parse_step) ... ok\ntest_start_stop (test_triggers.TestCronTrigger.test_start_stop) ... ok\ntest_emit_consume (test_triggers.TestTriggerBus.test_emit_consume) ... ok\n\n----------------------------------------------------------------------\nRan 108 tests in 13.011s\n\nOK\n",
+    "stderr_tail": ".TestCronParse.test_invalid_raises) ... ok\ntest_parse_alias (test_triggers.TestCronParse.test_parse_alias) ... ok\ntest_parse_fixed (test_triggers.TestCronParse.test_parse_fixed) ... ok\ntest_parse_step (test_triggers.TestCronParse.test_parse_step) ... ok\ntest_start_stop (test_triggers.TestCronTrigger.test_start_stop) ... ok\ntest_emit_consume (test_triggers.TestTriggerBus.test_emit_consume) ... ok\n\n----------------------------------------------------------------------\nRan 136 tests in 30.794s\n\nOK\n",
     "anti_tampering_passed": true,
     "patch_metrics": {
       "patch_path": "/root/10.2/cluster-prism-lite/.agent_lifecycle/candidate.patch",
-      "diff_bytes": 17640,
-      "lines_added": 107,
-      "lines_removed": 100,
+      "diff_bytes": 16808,
+      "lines_added": 140,
+      "lines_removed": 81,
       "has_changes": true
     },
     "tri_sieve_verdict": null,
     "verdict": "PHYSICAL_PROOF_VALIDATED"
   },
-  "last_updated": 1791524046.108038,
+  "last_updated": 1791608176.5824206,
   "intent_meta": {
-    "raw_prompt": "六边形架构升级：ModelPort 端口-适配器接入多厂商模型（litellm 包装适配器 + web-bridge 平级适配器），五条不变量契约测试红线（前缀字节级一致/单一序列化边界/禁内部重试/错误归一/幂等键透传），新增 ntfy 事件上报与多模型舰队注册表；既有全部优点一个不少，管线一行不改直到端口就绪",
-    "pure_problem_goal": "六边形架构升级：ModelPort 端口-适配器接入多厂商模型（litellm 包装适配器 + web-bridge 平级适配器），五条不变量契约测试红线（前缀字节级一致/单一序列化边界/禁内部重试/错误归一/幂等键透传），新增 ntfy 事件上报与多模型舰队注册表；既有全部优点一个不少，管线一行不改直到端口就绪",
+    "raw_prompt": "新增 leaderboard.py 多源全球排行榜获取（openrouter artificial_analysis 智能指数 + models.dev 模型元数据 + 静态快照兜底，修复 lmarena/huggingface 被墙导致的天梯不可用）；新增 model_discovery.py 自动发现模型并区分文本模型与语音/多模态模型（mode 字段过滤）；新增 SenseAudioAdapter 接入 api.senseaudio.cn（与路由分发严格分模块：发现/接入在 discovery+adapters，用哪个模型干什么在 smart_router）；飞书/Obsidian 生态接口勘探交付选型矩阵",
+    "pure_problem_goal": "新增 leaderboard.py 多源全球排行榜获取（openrouter artificial_analysis 智能指数 + models.dev 模型元数据 + 静态快照兜底，修复 lmarena/huggingface 被墙导致的天梯不可用）；新增 model_discovery.py 自动发现模型并区分文本模型与语音/多模态模型（mode 字段过滤）；新增 SenseAudioAdapter 接入 api.senseaudio.cn（与路由分发严格分模块：发现/接入在 discovery+adapters，用哪个模型干什么在 smart_router）；飞书/Obsidian 生态接口勘探交付选型矩阵",
     "has_solution_bias": false,
     "detected_biases": [],
     "explicit_invariants": [],
     "status": "GROUNDED"
   },
-  "active_task_id": "hexagonal-upgrade",
+  "active_task_id": "senseaudio-leaderboard",
   "reflexion_meta": {
     "status": "REFLEXION_DISTILLED",
     "adr_file": "/root/10.2/cluster-prism-lite/docs/ADR_LEDGER.md",

@@ -1,0 +1,34 @@
+{
+  "tasks": [
+    {
+      "id": "l1_leaderboard",
+      "description": "实现 leaderboard.py 多源全球排行榜：openrouter /models 的 artificial_analysis 智能指数（284 个有分）+ models.dev api.json 元数据（226 供应商）+ 静态快照兜底 + TTL 缓存，修复 lmarena/huggingface 被墙",
+      "target_files": ["leaderboard.py", "tests/test_leaderboard.py"],
+      "oracle_cmd": "python -m unittest tests.test_leaderboard -v"
+    },
+    {
+      "id": "l2_discovery",
+      "description": "实现 model_discovery.py：/v1/models 自动发现模型，按 mode 字段区分文本模型(llm/text)与语音/多模态模型(stt/tts/voice_*/image/video/music)，纯函数过滤",
+      "target_files": ["model_discovery.py", "tests/test_model_discovery.py"],
+      "oracle_cmd": "python -m unittest tests.test_model_discovery -v"
+    },
+    {
+      "id": "l3_senseaudio_adapter",
+      "description": "实现 SenseAudioAdapter（OpenAI 协议 api.senseaudio.cn）+ 舰队装配：发现→接入在 discovery+adapters 层，用哪个模型干什么在 smart_router 层，严格分模块不耦合",
+      "target_files": ["senseaudio_adapter.py", "fleet_setup.py", "tests/test_senseaudio.py"],
+      "oracle_cmd": "python -m unittest tests.test_senseaudio -v"
+    },
+    {
+      "id": "l4_router_enrich",
+      "description": "smart_router 接入 live 排行榜：帕累托分发的 ELO 分值自动从 leaderboard 刷新（先本地快照，后台刷新，被墙时降级静态）",
+      "target_files": ["smart_router.py", "tests/test_router_enrich.py"],
+      "oracle_cmd": "python -m unittest tests.test_router_enrich -v"
+    },
+    {
+      "id": "l5_integration",
+      "description": "集成回归：SENSE AUDIO 实测发现→接入→文本模型路由分发全链路 + 全量测试绿",
+      "target_files": ["tests/test_sa_integration.py"],
+      "oracle_cmd": "python -m unittest discover tests -v"
+    }
+  ]
+}
