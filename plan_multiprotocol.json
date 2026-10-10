@@ -1,0 +1,22 @@
+{
+  "tasks": [
+    {
+      "id": "m1_protocol_base",
+      "description": "实现 protocol_adapter.py：ProtocolAdapter 基类（transform_request/transform_response 纯函数 + capabilities 声明 + protocol_kind）+ AnthropicMessagesAdapter（Anthropic Messages 协议转换）+ GeminiAdapter（Gemini 原生协议转换），协议转换与网络调用分离",
+      "target_files": ["protocol_adapter.py", "tests/test_protocol_adapter.py"],
+      "oracle_cmd": "python -m unittest tests.test_protocol_adapter -v"
+    },
+    {
+      "id": "m2_protocol_registry",
+      "description": "协议注册表：protocol_kind 声明式注册（openai/anthropic/gemini），PlatformRegistry 扩展 protocol 字段，config 声明协议类型",
+      "target_files": ["platform_adapter.py", "tests/test_protocol_registry.py"],
+      "oracle_cmd": "python -m unittest tests.test_protocol_registry -v"
+    },
+    {
+      "id": "m3_integration",
+      "description": "集成回归：三协议适配器过契约 + 多协议舰队装配 + 旧测试兼容",
+      "target_files": ["tests/test_multi_protocol_integration.py"],
+      "oracle_cmd": "python -m unittest discover tests -v"
+    }
+  ]
+}

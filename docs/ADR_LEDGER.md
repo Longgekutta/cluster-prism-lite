@@ -38,3 +38,13 @@
 * **踩坑记录与避障反思 (Reflexion)**:
 
 ---
+
+## 📌 [2026-10-10 18:19:19] ADR-20261010_181919: 多协议接入层升级（照 any-llm 设计）：协议基类 Pr
+
+* **业务目标与问题域**: 多协议接入层升级（照 any-llm 设计）：协议基类 ProtocolAdapter（transform_request/transform_response 纯函数）+ capabilities 声明 + protocol registry 声明式注册（openai/anthropic/gemini 三协议），GenericOpenAIAdapter 收敛为 openai 协议实现；网关大修按 DeepSeek 排期（可观测性 P0→健康探测→凭据→CDP 自愈）；网关作为特殊 provider 接入集群
+* **核心架构设计决策**:
+  - [✓] 多协议接入层完成（照 any-llm/litellm 世界设计）：ProtocolAdapter 基类（transform_request/response 纯函数+capabilities+protocol_kind）+ Anthropic Messages/Gemini 原生协议转换 + 声明式注册表 get_protocol_adapter + 运行时扩展点 register_protocol；PlatformRegistry protocol 字段配置声明；网关作为 openai provider 接入（分工：接入层翻译/网关调度保安）；170测试全绿 G6通过 三协议转换实测
+  - [✓] 踩坑: 协议适配器是纯翻译不碰网络，契约套件只留给 ModelPort HTTP 适配器（纯翻译性验证用无 set_bottom/_send 断言）
+* **踩坑记录与避障反思 (Reflexion)**:
+
+---

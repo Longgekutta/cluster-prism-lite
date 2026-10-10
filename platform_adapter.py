@@ -135,11 +135,14 @@ class PlatformRegistry:
 
     def __init__(self, platforms: Optional[Dict[str, GenericOpenAIAdapter]] = None):
         self._platforms: Dict[str, GenericOpenAIAdapter] = platforms or {}
+        # protocol 声明：platform name → 协议类型（openai/anthropic/gemini）
+        self._protocols: Dict[str, str] = {}
 
     @classmethod
     def from_config(cls, cfg: Dict[str, Any]) -> "PlatformRegistry":
         """从 config platforms 声明装配（零硬编码代码）"""
         platforms: Dict[str, GenericOpenAIAdapter] = {}
+        protocols: Dict[str, str] = {}
         for p in cfg.get("platforms", []):
             name = p["name"]
             platforms[name] = GenericOpenAIAdapter(
@@ -149,7 +152,20 @@ class PlatformRegistry:
                 chat_path=p.get("chat_path", "/chat/completions"),
                 key_env=p.get("key_env", ""),
             )
-        return cls(platforms)
+            protocols[name] = p.get("protocol", "openai")
+        inst = cls(platforms)
+        inst._protocols = protocols
+        return inst
+
+    def protocol_for(self, name: str) -> str:
+        """查询平台协议类型"""
+        if name not in self._protocols:
+            raise KeyError(f"未注册平台: {name}")
+        return self._protocols[name]
+
+    def protocol_for_or(self, name: str, default: str = "openai") -> str:
+        """查询平台协议类型（未注册返回 default）"""
+        return self._protocols.get(name, default)
 
     def adapter_for(self, name: str) -> GenericOpenAIAdapter:
         adapter = self._platforms.get(name)
