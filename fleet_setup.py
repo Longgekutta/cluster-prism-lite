@@ -109,3 +109,60 @@ def refresh_elo_from_leaderboard(fleet: ModelFleet, fetcher: Any = None,
         fleet.models[mid]["elo"] = elo
         refreshed += 1
     return refreshed
+
+
+def load_platform_config(config_path: str = "") -> Dict[str, Any]:
+    """读取含 platforms 声明的配置"""
+    return load_fleet_config(config_path)
+
+
+def build_fleet_from_platforms(cfg: Dict[str, Any],
+                               tier_default: str = Tier.FLASH.value,
+                               elo_default: float = 1250.0
+                               ) -> Tuple[AdapterRegistry, ModelFleet]:
+    """平台模型自动入舰队（配置驱动，零硬编码代码）
+
+    解耦链路：model_discovery（发现/过滤文本模型）
+      → GenericOpenAIAdapter（平台接入，一个类覆盖任何平台）
+      → ModelFleet（舰队，供 smart_router 帕累托分发）
+
+      - 平台从 cfg["platforms"] 声明装配（新平台加配置即接入）
+      - 每平台 /v1/models 发现 → mode 过滤文本模型 → 自动注册
+      - 单平台失败不阻塞其他平台（记录告警继续）
+      - 跨平台模型名去重（m-shared 只保留一次）
+    返回 (registry, fleet)：registry 为 model_id→adapter 映射。
+    """
+    from platform_adapter import GenericOpenAIAdapter
+    from model_discovery import filter_text_models, fetch_models
+
+    registry = AdapterRegistry()
+    fleet = ModelFleet()
+    for p in cfg.get("platforms", []):
+        name = p["name"]
+        try:
+            adapter = GenericOpenAIAdapter(
+                api_key=p.get("key", ""),
+                api_base=p["api_base"],
+                key_env=p.get("key_env", ""),
+            )
+            models = fetch_models(adapter.api_key, adapter.api_base)
+        except (urllib.error.URLError, urllib.error.HTTPError,
+                json.JSONDecodeError, OSError, KeyError, ValueError) as exc:
+            # 单平台失败：记录告警继续其他平台（不静默吞掉）
+            print(f"[fleet_setup] 平台 {name} 发现失败(跳过): "
+                  f"{type(exc).__name__}: {exc}", flush=True)
+            continue
+        text_models = filter_text_models(models)
+        for m in text_models:
+            mid = m["id"]
+            if mid in fleet.models:  # 跨平台去重
+                continue
+            # 每个模型绑定平台通用适配器（同一个 adapter 实例，协议一致）
+            registry.register(mid, adapter)
+            fleet.register(mid, {"tier": tier_default, "elo": elo_default,
+                                 "source": name})
+    return registry, fleet
+
+
+# urllib/json 显式导入
+import urllib.error  # noqa: E402

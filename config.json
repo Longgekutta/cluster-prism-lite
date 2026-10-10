@@ -69,13 +69,18 @@
     "prefix_alignment_baseline": 2048,
     "deterministic_temp_max": 0.25
   },
-  "platforms": {
-    "senseaudio": {
+  "platforms": [
+    {
+      "name": "senseaudio",
       "api_base": "https://api.senseaudio.cn",
-      "models_endpoint": "/v1/models",
-      "note": "mode 字段区分 llm(文本)/stt/tts/voice 等；文本模型自动入舰队"
+      "key_env": "SENSEAUDIO_API_KEY"
+    },
+    {
+      "name": "deepseek",
+      "api_base": "https://api.deepseek.com/v1",
+      "key_env": "DEEPSEEK_API_KEY"
     }
-  },
+  ],
   "leaderboard": {
     "sources": [
       "openrouter",

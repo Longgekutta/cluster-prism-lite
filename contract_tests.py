@@ -109,17 +109,24 @@ def check_no_internal_retry(adapter: Any) -> bool:
     set_bottom = getattr(adapter, "set_bottom", None)
     if set_bottom is None:
         return False  # 无底层注入点 = 无法证明无内部重试 = 不合规
+    # 记录原底层，测试后恢复（契约测试不得污染生产实例）
+    original_bottom = getattr(adapter, "_bottom", None)
     set_bottom(AlwaysFailingBottom())
     try:
         adapter.invoke(_make_request())
         return False  # 失败后仍返回成功 = 有问题
     except CanonicalError:
         # 底层失败冒泡为 CanonicalError = 无内部重试（合规）
-        return calls["n"] == 1  # 底层只被调 1 次 = 无内部重试
+        result = calls["n"] == 1  # 底层只被调 1 次 = 无内部重试
+        return result
     except (RuntimeError, ValueError, TypeError, AttributeError, OSError) as exc:
         # 适配器把底层错误吞掉换成裸异常 = 违规（未归一）
         print(f"[contract] 内部重试/未归一异常(判为不合规): {type(exc).__name__}", flush=True)
-        return False
+        result = False
+        return result
+    finally:
+        # 恢复原底层（契约测试不得污染生产实例）
+        set_bottom(original_bottom)
 
 
 def check_error_normalized(adapter: Any) -> bool:

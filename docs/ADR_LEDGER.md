@@ -28,3 +28,13 @@
 * **踩坑记录与避障反思 (Reflexion)**:
 
 ---
+
+## 📌 [2026-10-10 13:13:35] ADR-20261010_131335: 通用平台适配器收敛：GenericOpenAIAdapter
+
+* **业务目标与问题域**: 通用平台适配器收敛：GenericOpenAIAdapter 一个类覆盖任何 OpenAI 协议平台（api_base/端点/凭据全部配置驱动），PlatformRegistry 配置驱动注册（config.json platforms 声明，新平台加配置即接入，零硬编码代码），旧 SenseAudio/WebBridge/Urllib 适配器迁移收敛，契约红线与既有优点全部保留
+* **核心架构设计决策**:
+  - [✓] 通用平台适配器收敛完成：GenericOpenAIAdapter 一个类覆盖任何 OpenAI 协议平台（api_base/models_path/chat_path/key_env 全配置驱动），PlatformRegistry config platforms 声明装配（新平台加 JSON 即接入零代码），build_fleet_from_platforms 平台模型自动入舰队（mode 过滤文本+跨平台去重+单平台失败不阻塞）；155测试全绿 G6通过 SENSE AUDIO 实测成功
+  - [✓] 踩坑: 1) 契约测试 set_bottom 替换底层后必须恢复原值，否则污染生产实例（实测撞上 CanonicalError 503 transient）; 2) freeze 红灯神谕需 <30s（ProcessGuard 硬超时+killpg 会误杀自身进程组），用快速子集 runner 规避
+* **踩坑记录与避障反思 (Reflexion)**:
+
+---

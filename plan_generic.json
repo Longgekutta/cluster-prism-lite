@@ -1,0 +1,28 @@
+{
+  "tasks": [
+    {
+      "id": "g1_generic_adapter",
+      "description": "实现 GenericOpenAIAdapter：一个类覆盖任何 OpenAI 协议平台（api_base/api_key/models_path/chat_path/凭据环境变量名全部构造参数+配置驱动），兼容替代 UrllibAdapter/WebBridgeAdapter/SenseAudioAdapter 三类",
+      "target_files": ["platform_adapter.py", "tests/test_platform_adapter.py"],
+      "oracle_cmd": "python -m unittest tests.test_platform_adapter -v"
+    },
+    {
+      "id": "g2_platform_registry",
+      "description": "实现 PlatformRegistry：从 config.json platforms 声明装配平台（platform→api_base/key_env/models_path），新平台加配置即接入，凭据走环境变量零硬编码",
+      "target_files": ["platform_adapter.py", "config.json", "tests/test_platform_registry.py"],
+      "oracle_cmd": "python -m unittest tests.test_platform_registry -v"
+    },
+    {
+      "id": "g3_fleet_from_platforms",
+      "description": "fleet_setup 平台模型自动入舰队：/v1/models 发现的文本模型（mode 过滤）自动注册到 Registry+Fleet，discovery→platform_registry→fleet→smart_router 解耦链路",
+      "target_files": ["fleet_setup.py", "tests/test_fleet_platforms.py"],
+      "oracle_cmd": "python -m unittest tests.test_fleet_platforms -v"
+    },
+    {
+      "id": "g4_integration",
+      "description": "集成回归：SENSE AUDIO 配置驱动接入实测（发现→契约→路由→真实调用）+ 全量测试绿 + 旧测试兼容",
+      "target_files": ["tests/test_platform_integration.py"],
+      "oracle_cmd": "python -m unittest discover tests -v"
+    }
+  ]
+}

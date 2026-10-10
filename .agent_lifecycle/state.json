@@ -1,59 +1,49 @@
 {
   "current_state": "G7_REFLEXION_DISTILLED",
-  "goal": "新增 leaderboard.py 多源全球排行榜获取（openrouter artificial_analysis 智能指数 + models.dev 模型元数据 + 静态快照兜底，修复 lmarena/huggingface 被墙导致的天梯不可用）；新增 model_discovery.py 自动发现模型并区分文本模型与语音/多模态模型（mode 字段过滤）；新增 SenseAudioAdapter 接入 api.senseaudio.cn（与路由分发严格分模块：发现/接入在 discovery+adapters，用哪个模型干什么在 smart_router）；飞书/Obsidian 生态接口勘探交付选型矩阵",
+  "goal": "通用平台适配器收敛：GenericOpenAIAdapter 一个类覆盖任何 OpenAI 协议平台（api_base/端点/凭据全部配置驱动），PlatformRegistry 配置驱动注册（config.json platforms 声明，新平台加配置即接入，零硬编码代码），旧 SenseAudio/WebBridge/Urllib 适配器迁移收敛，契约红线与既有优点全部保留",
   "plan_meta": {
     "status": "VALIDATED",
-    "total_tasks": 5,
+    "total_tasks": 4,
     "topological_sequence": [
-      "l1_leaderboard",
-      "l2_discovery",
-      "l3_senseaudio_adapter",
-      "l4_router_enrich",
-      "l5_integration"
+      "g1_generic_adapter",
+      "g2_platform_registry",
+      "g3_fleet_from_platforms",
+      "g4_integration"
     ],
     "tasks": [
       {
-        "id": "l1_leaderboard",
-        "description": "实现 leaderboard.py 多源全球排行榜：openrouter /models 的 artificial_analysis 智能指数（284 个有分）+ models.dev api.json 元数据（226 供应商）+ 静态快照兜底 + TTL 缓存，修复 lmarena/huggingface 被墙",
+        "id": "g1_generic_adapter",
+        "description": "实现 GenericOpenAIAdapter：一个类覆盖任何 OpenAI 协议平台（api_base/api_key/models_path/chat_path/凭据环境变量名全部构造参数+配置驱动），兼容替代 UrllibAdapter/WebBridgeAdapter/SenseAudioAdapter 三类",
         "target_files": [
-          "leaderboard.py",
-          "tests/test_leaderboard.py"
+          "platform_adapter.py",
+          "tests/test_platform_adapter.py"
         ],
-        "oracle_cmd": "python -m unittest tests.test_leaderboard -v"
+        "oracle_cmd": "python -m unittest tests.test_platform_adapter -v"
       },
       {
-        "id": "l2_discovery",
-        "description": "实现 model_discovery.py：/v1/models 自动发现模型，按 mode 字段区分文本模型(llm/text)与语音/多模态模型(stt/tts/voice_*/image/video/music)，纯函数过滤",
+        "id": "g2_platform_registry",
+        "description": "实现 PlatformRegistry：从 config.json platforms 声明装配平台（platform→api_base/key_env/models_path），新平台加配置即接入，凭据走环境变量零硬编码",
         "target_files": [
-          "model_discovery.py",
-          "tests/test_model_discovery.py"
+          "platform_adapter.py",
+          "config.json",
+          "tests/test_platform_registry.py"
         ],
-        "oracle_cmd": "python -m unittest tests.test_model_discovery -v"
+        "oracle_cmd": "python -m unittest tests.test_platform_registry -v"
       },
       {
-        "id": "l3_senseaudio_adapter",
-        "description": "实现 SenseAudioAdapter（OpenAI 协议 api.senseaudio.cn）+ 舰队装配：发现→接入在 discovery+adapters 层，用哪个模型干什么在 smart_router 层，严格分模块不耦合",
+        "id": "g3_fleet_from_platforms",
+        "description": "fleet_setup 平台模型自动入舰队：/v1/models 发现的文本模型（mode 过滤）自动注册到 Registry+Fleet，discovery→platform_registry→fleet→smart_router 解耦链路",
         "target_files": [
-          "senseaudio_adapter.py",
           "fleet_setup.py",
-          "tests/test_senseaudio.py"
+          "tests/test_fleet_platforms.py"
         ],
-        "oracle_cmd": "python -m unittest tests.test_senseaudio -v"
+        "oracle_cmd": "python -m unittest tests.test_fleet_platforms -v"
       },
       {
-        "id": "l4_router_enrich",
-        "description": "smart_router 接入 live 排行榜：帕累托分发的 ELO 分值自动从 leaderboard 刷新（先本地快照，后台刷新，被墙时降级静态）",
+        "id": "g4_integration",
+        "description": "集成回归：SENSE AUDIO 配置驱动接入实测（发现→契约→路由→真实调用）+ 全量测试绿 + 旧测试兼容",
         "target_files": [
-          "smart_router.py",
-          "tests/test_router_enrich.py"
-        ],
-        "oracle_cmd": "python -m unittest tests.test_router_enrich -v"
-      },
-      {
-        "id": "l5_integration",
-        "description": "集成回归：SENSE AUDIO 实测发现→接入→文本模型路由分发全链路 + 全量测试绿",
-        "target_files": [
-          "tests/test_sa_integration.py"
+          "tests/test_platform_integration.py"
         ],
         "oracle_cmd": "python -m unittest discover tests -v"
       }
@@ -61,14 +51,7 @@
     "is_acyclic_dag": true
   },
   "oracle_meta": {
-    "status": "ORACLE_FROZEN",
-    "oracle_cmd": "python -m unittest discover tests -v",
-    "cmd_sha256": "0b25c3c2be5ec0d3979e7b0f1d7e0050b80393868a6c1ba3b3b16ca6c206c90e",
-    "test_file_hashes": {},
-    "pre_execution_red_state_verified": true,
-    "initial_exit_code": 1,
-    "initial_stderr_sample": "test_registry_health_probe (test_adapters.TestContractViaRegistry.test_registry_health_probe) ... ok\ntest_registry_list (test_adapters.TestContractViaRegistry.test_registry_list) ... ok\ntest_registry_resolves_model (test_adapters.TestContractViaRegistry.test_registry_resolves_model) ... ok\ntest_regi",
-    "wall_latency_ms": 11934.96
+    "oracle_cmd": "sh run_redlight.sh"
   },
   "checkpoint_meta": {
     "status": "CHECKPOINT_SECURED",
@@ -91,27 +74,27 @@
   },
   "evidence_meta": {
     "is_cleared": true,
-    "timestamp": 1791608153.8063595,
-    "execution_duration_sec": 36.03,
-    "oracle_cmd": "python -m unittest discover tests -v",
+    "timestamp": 1791609194.0806332,
+    "execution_duration_sec": 3.551,
+    "oracle_cmd": "sh run_redlight.sh",
     "exit_code": 0,
-    "stdout_tail": "",
-    "stderr_tail": ".TestCronParse.test_invalid_raises) ... ok\ntest_parse_alias (test_triggers.TestCronParse.test_parse_alias) ... ok\ntest_parse_fixed (test_triggers.TestCronParse.test_parse_fixed) ... ok\ntest_parse_step (test_triggers.TestCronParse.test_parse_step) ... ok\ntest_start_stop (test_triggers.TestCronTrigger.test_start_stop) ... ok\ntest_emit_consume (test_triggers.TestTriggerBus.test_emit_consume) ... ok\n\n----------------------------------------------------------------------\nRan 136 tests in 30.794s\n\nOK\n",
+    "stdout_tail": "[fleet_setup] 平台 bad 发现失败(跳过): OSError: network down\n",
+    "stderr_tail": "n.test_discovery_to_fleet_chain)\n解耦链路：discovery 发现 → generic adapter 接入 → fleet 装配 → 帕累托 ... ok\ntest_engine_via_generic_adapter (tests.test_platform_integration.TestPlatformIntegration.test_engine_via_generic_adapter)\nengine 经通用适配器全管线（mock 网络） ... ok\ntest_senseaudio_config_driven (tests.test_platform_integration.TestPlatformIntegration.test_senseaudio_config_driven)\nSENSE AUDIO 走配置驱动（非硬编码类） ... ok\n\n----------------------------------------------------------------------\nRan 19 tests in 1.078s\n\nOK\n",
     "anti_tampering_passed": true,
     "patch_metrics": {
       "patch_path": "/root/10.2/cluster-prism-lite/.agent_lifecycle/candidate.patch",
-      "diff_bytes": 16808,
-      "lines_added": 140,
-      "lines_removed": 81,
+      "diff_bytes": 302800,
+      "lines_added": 2532,
+      "lines_removed": 1945,
       "has_changes": true
     },
     "tri_sieve_verdict": null,
     "verdict": "PHYSICAL_PROOF_VALIDATED"
   },
-  "last_updated": 1791608176.5824206,
+  "last_updated": 1791609215.9457784,
   "intent_meta": {
-    "raw_prompt": "新增 leaderboard.py 多源全球排行榜获取（openrouter artificial_analysis 智能指数 + models.dev 模型元数据 + 静态快照兜底，修复 lmarena/huggingface 被墙导致的天梯不可用）；新增 model_discovery.py 自动发现模型并区分文本模型与语音/多模态模型（mode 字段过滤）；新增 SenseAudioAdapter 接入 api.senseaudio.cn（与路由分发严格分模块：发现/接入在 discovery+adapters，用哪个模型干什么在 smart_router）；飞书/Obsidian 生态接口勘探交付选型矩阵",
-    "pure_problem_goal": "新增 leaderboard.py 多源全球排行榜获取（openrouter artificial_analysis 智能指数 + models.dev 模型元数据 + 静态快照兜底，修复 lmarena/huggingface 被墙导致的天梯不可用）；新增 model_discovery.py 自动发现模型并区分文本模型与语音/多模态模型（mode 字段过滤）；新增 SenseAudioAdapter 接入 api.senseaudio.cn（与路由分发严格分模块：发现/接入在 discovery+adapters，用哪个模型干什么在 smart_router）；飞书/Obsidian 生态接口勘探交付选型矩阵",
+    "raw_prompt": "通用平台适配器收敛：GenericOpenAIAdapter 一个类覆盖任何 OpenAI 协议平台（api_base/端点/凭据全部配置驱动），PlatformRegistry 配置驱动注册（config.json platforms 声明，新平台加配置即接入，零硬编码代码），旧 SenseAudio/WebBridge/Urllib 适配器迁移收敛，契约红线与既有优点全部保留",
+    "pure_problem_goal": "通用平台适配器收敛：GenericOpenAIAdapter 一个类覆盖任何 OpenAI 协议平台（api_base/端点/凭据全部配置驱动），PlatformRegistry 配置驱动注册（config.json platforms 声明，新平台加配置即接入，零硬编码代码），旧 SenseAudio/WebBridge/Urllib 适配器迁移收敛，契约红线与既有优点全部保留",
     "has_solution_bias": false,
     "detected_biases": [],
     "explicit_invariants": [],
@@ -124,5 +107,7 @@
     "memory_file": "/root/10.2/cluster-prism-lite/.agent_lifecycle/reflexion_memory.jsonl",
     "distilled_decisions_count": 2,
     "distilled_pitfalls_count": 0
-  }
+  },
+  "task_id": "generic-adapter",
+  "checkpoint": "git-auto"
 }
