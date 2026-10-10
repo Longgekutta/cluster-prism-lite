@@ -144,7 +144,10 @@ class GeminiAdapter(ProtocolAdapter):
         candidates = payload.get("candidates", [])
         text = ""
         if candidates:
-            parts = candidates[0].get("content", {}).get("parts", [])
+            first = candidates[0] if isinstance(candidates[0], dict) else {}
+            content = first.get("content")
+            content = content if isinstance(content, dict) else {}
+            parts = content.get("parts", [])
             text = "".join(p.get("text", "") for p in parts if isinstance(p, dict))
         usage = payload.get("usageMetadata", {})
         return {
