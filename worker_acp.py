@@ -187,7 +187,11 @@ class LineJsonRpcClient:
                     break
                 data += chunk
             return data.decode("utf-8", errors="replace")
-        except Exception:
+        except (OSError, ValueError) as exc:
+            # stderr 诊断读取本身失败不阻塞主流程，但必须记录（禁静默吞，PRB-E108）
+            import sys as _sys
+            print(f"[worker_acp] stderr 诊断读取失败: {type(exc).__name__}: {exc}",
+                  file=_sys.stderr)
             return ""
 
 
