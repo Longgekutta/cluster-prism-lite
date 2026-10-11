@@ -115,6 +115,14 @@ def cmd_health() -> int:
     for name, ok in checks.items():
         print(f"  {'✓' if ok else '✗'} {name}")
         healthy = healthy and ok
+    # 执行工兵层（ACP）：凭据感知探针——凭据缺失只标 DEGRADED 不挂死
+    try:
+        from worker_acp import WorkerRegistry
+        workers = WorkerRegistry.from_config(cfg)
+        for name, ok in workers.health().items():
+            print(f"  {'✓' if ok else '✗'} worker:{name}")
+    except Exception as exc:  # 工兵层可选：配置缺失不阻塞基础健康
+        print(f"  - worker层跳过: {type(exc).__name__}")
     print(f"[health] {'HEALTHY' if healthy else 'DEGRADED'}")
     return 0 if healthy else 1
 

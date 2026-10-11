@@ -57,6 +57,46 @@ python main.py clean           # 清理缓存
 ```bash
 export DEEPSEEK_API_KEY=sk-xxx        # 或写入 secret.env
 export TELEGRAM_BOT_TOKEN=123456:xxx  # 可选，缺省渠道降级关闭
+export ANTHROPIC_API_KEY=sk-ant-xxx   # 可选：执行工兵层（ACP）凭据
+```
+
+## 执行工兵层（ACP 标准协议，可泛化）🆕
+
+`worker_acp.py`：把执行工兵（Claude Code 等）当作集群的外包工兵，
+通过**标准 ACP v1**（Agent Client Protocol，line-delimited JSON-RPC over stdio）委派任务。
+
+**分工定界（各有思路，不互相侵入）**：
+
+| 模块 | 职责 |
+| :--- | :--- |
+| `platform_adapter.py` | "用哪个 AI 平台模型"——HTTP 调用，无状态 |
+| `worker_acp.py` | "哪个 agent 去改代码"——子进程委派，会话可续（session/resume 对应 mesh 白皮书"长程连续态"） |
+| `engine.py` | 七阶编排（路由/缓存/门禁），只依赖以上接口 |
+
+**五条工兵不变量**（`tests/test_worker_acp.py` 契约断言）：
+W-INV-A 协议纯度（非法行忽略）｜W-INV-B 错误归一（WorkerError：LAUNCH/TIMEOUT/PROTOCOL/REFUSED）｜W-INV-C 禁内部重试｜W-INV-D 会话可续｜W-INV-E 无状态不落盘
+
+**关键踩坑（ADR 沉淀）**：
+1. `text=True` 的 `readline()` 走 Python 用户态缓冲，`selectors` 监听底层 fd——
+   数据已在缓冲区时 select 永远不亮（挂死）。修复：非阻塞 `os.read` + 自管行缓冲，
+   缓冲状态挂在实例上（不随生成器丢弃）。
+2. `claude-agent-acp` 凭据缺失时**静默等待而非退出**——`env_key` 声明了但
+   凭据缺失直接报 REFUSED，杜绝挂死。
+
+**泛化契约**：新工兵 = config.json `workers` 加一条 JSON，零代码改动：
+
+```json
+"workers": [
+  {"name": "claude-code", "command": ["/opt/node/bin/claude-agent-acp"],
+   "env_key": "ANTHROPIC_API_KEY", "cwd": "/path/to/workspace", "timeout_s": 300},
+  {"name": "任何-acp-agent", "command": ["其他-acp-server"]}
+]
+```
+
+安装桥（Claude Code 经官方 Zed 生态适配器 `@agentclientprotocol/claude-agent-acp`）：
+
+```bash
+npm install -g @agentclientprotocol/claude-agent-acp
 ```
 
 ## 选型溯源（AI 模式重搜验证）
