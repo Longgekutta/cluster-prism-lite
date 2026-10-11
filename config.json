@@ -96,7 +96,21 @@
       "env_key": "ANTHROPIC_API_KEY",
       "cwd": "/root/10.2",
       "timeout_s": 300,
-      "note": "执行工兵：经 claude-agent-acp 桥（官方 Zed 生态适配器）以标准 ACP v1 驱动 Claude Code；泛化：换 command+env_key 即接任何 ACP 兼容 agent"
+      "note": "执行工兵：经 claude-agent-acp 桥（官方 Zed 生态适配器）以标准 ACP v1 驱动 Claude Code"
+    },
+    {
+      "name": "dsh-acp",
+      "command": ["/opt/node/bin/dsh", "--profile", "acp"],
+      "cwd": "/root/10.2",
+      "timeout_s": 300,
+      "note": "执行工兵：DeepSeek Harness 的标准 ACP server（dsh --profile acp），零凭据依赖（凭据在 dsh 侧 credentials）"
+    },
+    {
+      "name": "any-acp-generic",
+      "command": ["echo-placeholder-acp-server"],
+      "cwd": "",
+      "timeout_s": 60,
+      "note": "泛化模板：任何 ACP 兼容 agent 按此格式声明即可接入（零代码），health 探针会如实标 ✗ 直到真实 command 就位"
     }
   ]
 }

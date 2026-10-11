@@ -89,9 +89,18 @@ W-INV-A 协议纯度（非法行忽略）｜W-INV-B 错误归一（WorkerError�
 "workers": [
   {"name": "claude-code", "command": ["/opt/node/bin/claude-agent-acp"],
    "env_key": "ANTHROPIC_API_KEY", "cwd": "/path/to/workspace", "timeout_s": 300},
+  {"name": "dsh-acp", "command": ["/opt/node/bin/dsh", "--profile", "acp"],
+   "cwd": "/path/to/workspace"},
   {"name": "任何-acp-agent", "command": ["其他-acp-server"]}
 ]
 ```
+
+当前工兵阵容：`claude-code`（经官方 Zed 生态适配器桥）、`dsh-acp`（DeepSeek Harness 标准 ACP server）、泛化模板占位。
+
+**引擎闭环**（`engine.run_with_worker`）：七阶管线 Phase5 可选"工兵模式"——
+Phase1~4 与 Phase6~7 照常（路由/缓存/门禁不因工兵而跳过），仅执行从 LLM 调用
+换为 ACP 委派；工兵最终文本按 `worker:<name>` 归一落盘缓存，下次 0ms 直返；
+ELITE 大活派工兵，FLASH 小活走模型（智能分级语义不变）。
 
 安装桥（Claude Code 经官方 Zed 生态适配器 `@agentclientprotocol/claude-agent-acp`）：
 

@@ -278,6 +278,105 @@ class ClusterEngine:
         ]
         return committee.review(messages)
 
+    # ---------------- 执行工兵层（ACP，可选闭环） ----------------
+
+    def run_with_worker(self, intent: str, worker_name: str = "claude-code",
+                        session_id: str = "",
+                        session_key: str = "default",
+                        target_files: Optional[List[str]] = None,
+                        do_checkpoint: bool = False,
+                        cache_lookup: bool = True) -> PipelineResult:
+        """工兵模式：七阶管线的 Phase5 换成 ACP 工兵委派
+
+        分工不变：Phase1~4 与 Phase6~7 照常（路由/缓存/门禁不因工兵而跳过），
+        仅 Phase5 的"执行"从 LLM 调用换为 worker_acp 委派（长程连续态：
+        session_id 透传对应 mesh 白皮书三态会话映射）。
+        缓存仍拦在最前（工兵最终文本按模型归一落盘，下次 0ms 直返）。
+        """
+        result = PipelineResult(ok=False)
+        messages = [
+            {"role": "system", "content": "You are a precise engineering cluster worker."},
+            {"role": "user", "content": intent},
+        ]
+        if not intent.strip():
+            result.add("Phase1", False, "空意图")
+            return result
+        result.add("Phase1", True, f"意图定格: {intent[:60]}")
+
+        # 工兵模式下 Phase2 固定 ELITE 语义（大活派工兵），model_id 记工兵名
+        result.route_tier = "ELITE"
+        result.model_id = f"worker:{worker_name}"
+        result.add("Phase2", True, f"工兵模式 worker={worker_name}")
+
+        # Phase 3: 缓存拦截在最前（与 run 同构）
+        if cache_lookup:
+            hit = self.cache.preflight(f"worker:{worker_name}", messages,
+                                       temperature=0.0, session_id=session_key)
+            if hit.hit and hit.response is not None:
+                result.cache_hit = True
+                result.ok = True
+                result.answer = hit.response.get("content", "")
+                result.add("Phase3", True, f"缓存命中 {hit.elapsed_ms:.2f}ms")
+                result.add("Phase5", True, "缓存直返，跳过工兵委派")
+                return result
+        result.add("Phase3", True, "缓存未命中")
+
+        # Phase 4: checkpoint 照常
+        if do_checkpoint:
+            try:
+                cp = self.checkpoints.snapshot(f"pre-worker: {intent[:50]}",
+                                               paths=target_files)
+                result.checkpoint_ref = cp.ref
+                result.add("Phase4", True, f"checkpoint {cp.ref[:12]}")
+            except CheckpointError as exc:
+                result.add("Phase4", False, f"checkpoint 失败: {exc}")
+                return result
+        else:
+            result.add("Phase4", True, "跳过 checkpoint")
+
+        # Phase 5: ACP 工兵委派（W-INV-C：失败直接上抛，无内部重试）
+        from worker_acp import WorkerRegistry, WorkerError, WorkerTask
+        cfg = self._load_worker_config()
+        try:
+            worker = WorkerRegistry.from_config(cfg).worker_for(worker_name)
+        except WorkerError as exc:
+            result.add("Phase5", False, f"工兵未注册: {exc}")
+            return result
+        try:
+            outcome = worker.delegate(WorkerTask(
+                intent=intent, session_id=session_id,
+                cwd=worker._cwd, timeout_s=300))
+        except WorkerError as exc:
+            result.add("Phase5", False, f"工兵委派失败: {exc}")
+            return result
+        except OSError as exc:
+            result.add("Phase5", False, f"工兵进程失败: {exc}")
+            return result
+        result.answer = outcome.content
+        result.add("Phase5", True,
+                   f"工兵 {worker_name} 返回 {len(outcome.content)} 字符 (session={outcome.session_id[:16]})")
+        # 工兵结果落盘缓存（与模型结果同构，下次 0ms 直返）
+        try:
+            self.cache.disk_store(f"worker:{worker_name}", messages, 0.0,
+                                  {"content": outcome.content})
+        except RuntimeError as exc:
+            result.add("Phase5", False, f"缓存落盘失败(不阻塞): {exc}")
+            return result
+
+        result.ok = True
+        result.add("Phase7", True, "工兵管线闭环完成")
+        return result
+
+    @staticmethod
+    def _load_worker_config() -> Dict[str, Any]:
+        """读取 config.json workers 声明（缺省空配置）"""
+        try:
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                   "config.json"), encoding="utf-8") as f:
+                return json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {}
+
 
 # urllib.error 显式导入
 import urllib.error  # noqa: E402
