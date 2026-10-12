@@ -97,8 +97,13 @@ class LineJsonRpcClient:
 
     def request(self, method: str, params: Optional[Dict[str, Any]] = None,
                 timeout_s: int = 60) -> Dict[str, Any]:
-        """发送请求并等待同 id 响应；失败抛 WorkerError（W-INV-B）"""
-        req_id = uuid.uuid4().int >> 64
+        """发送请求并等待同 id 响应；失败抛 WorkerError（W-INV-B）
+
+        关键教训（ADR）：请求 id 必须落在 JS Number 安全整数范围内（< 2^53）。
+        大整型 id 经 JS 实现的工兵（claude-agent-acp / dsh-acp）回显时被
+        Number 精度截断，id 永远对不上 → 假超时挂死。
+        """
+        req_id = uuid.uuid4().int % (2 ** 53 - 1)  # JS Number 安全整数
         line = json.dumps({"jsonrpc": "2.0", "id": req_id,
                            "method": method, "params": params or {}},
                           ensure_ascii=False)
@@ -242,13 +247,17 @@ class AcpWorker:
     # ---- ACP 三方法 ----
 
     def _initialize(self, rpc: LineJsonRpcClient) -> None:
-        """ACP 握手：protocolVersion=1，能力声明最小化（fs 代理由工兵自理）"""
+        """ACP 握手：protocolVersion=1，能力声明最小化（fs 代理由工兵自理）
+
+        握手超时 60s：实测 `dsh --profile acp` 冷启动首响应 ~32s，
+        30s 固定超时会误杀慢启动工兵（ADR 沉淀）。
+        """
         rpc.request("initialize", {
             "protocolVersion": 1,
             "clientCapabilities": {
                 "fs": {"readTextFile": False, "writeTextFile": False},
             },
-        }, timeout_s=30)
+        }, timeout_s=60)
 
     def delegate(self, task: WorkerTask) -> WorkerResult:
         """委派一次任务：握手 → 新会话（或续接）→ 发 intent → 收结果 → 关闭
