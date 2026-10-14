@@ -37,12 +37,14 @@ for line in sys.stdin:
     elif method == "session/new":
         print(json.dumps({"jsonrpc": "2.0", "id": rid,
                           "result": {"sessionId": "sess-engine-1"}}), flush=True)
+    elif method == "session/prompt":
+        print(json.dumps({"jsonrpc": "2.0", "id": rid,
+                          "result": {"sessionId": (msg.get("params") or {}).get("sessionId", ""),
+                                     "stopReason": "end_turn"}}), flush=True)
         print(json.dumps({"jsonrpc": "2.0", "method": "session/update",
                           "params": {"update": {"sessionUpdate": "agent_message_chunk",
                                                 "content": {"type": "text", "text": "worker done"}}}}),
               flush=True)
-        print(json.dumps({"jsonrpc": "2.0", "method": "session/stop",
-                          "params": {"stopReason": "end_turn"}}), flush=True)
 """
 
 

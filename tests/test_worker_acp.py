@@ -47,26 +47,15 @@ for line in sys.stdin:
     elif method == "session/new":
         print(json.dumps({"jsonrpc": "2.0", "id": rid,
                           "result": {"sessionId": "sess-mock-1"}}), flush=True)
-        # 模拟通知流：agent_message_chunk + stopReason
-        print(json.dumps({"jsonrpc": "2.0", "method": "session/update",
-                          "params": {"sessionId": "sess-mock-1",
-                                     "update": {"sessionUpdate": "agent_message_chunk",
-                                                "content": {"type": "text", "text": "mock 干完"}}}}),
-              flush=True)
-        print(json.dumps({"jsonrpc": "2.0", "method": "session/stop",
-                          "params": {"sessionId": "sess-mock-1", "stopReason": "end_turn"}}),
-              flush=True)
     elif method == "session/prompt":
         sid = (msg.get("params") or {}).get("sessionId", "")
         print(json.dumps({"jsonrpc": "2.0", "id": rid,
-                          "result": {"sessionId": sid}}), flush=True)
+                          "result": {"sessionId": sid,
+                                     "stopReason": "end_turn"}}), flush=True)
         print(json.dumps({"jsonrpc": "2.0", "method": "session/update",
                           "params": {"sessionId": sid,
                                      "update": {"sessionUpdate": "agent_message_chunk",
-                                                "content": {"type": "text", "text": "续接结果"}}}}),
-              flush=True)
-        print(json.dumps({"jsonrpc": "2.0", "method": "session/stop",
-                          "params": {"sessionId": sid, "stopReason": "end_turn"}}),
+                                                "content": {"type": "text", "text": "mock 干完"}}}}),
               flush=True)
     elif method == "auth/fail":
         print(json.dumps({"jsonrpc": "2.0", "id": rid,
@@ -142,7 +131,7 @@ class TestAcpWorkerDelegate(unittest.TestCase):
         """W-INV-D：session_id 透传，走 session/prompt 续接"""
         result = self._worker().delegate(
             WorkerTask(intent="继续", session_id="sess-mock-1"))
-        self.assertEqual(result.content, "续接结果")
+        self.assertEqual(result.content, "mock 干完")
         self.assertEqual(result.session_id, "sess-mock-1")
 
     def test_empty_intent_refused(self):

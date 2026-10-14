@@ -264,6 +264,11 @@ class AcpWorker:
 
         W-INV-C：任何失败直接上抛 WorkerError，无内部重试。
         W-INV-D：task.session_id 非空时续接既有会话（不回放历史）。
+
+        两种工兵完成模式（ADR 实测沉淀）：
+          - 同步完成：session/prompt 的 result 直接携带 stopReason（dsh-acp）
+          - 流式完成：result 是入队回执，chunk/stop 走通知流（mock/Zed 模式）
+        delegate 两种都兼容。
         """
         if not task.intent.strip():
             raise WorkerError("PROTOCOL", "empty intent")
@@ -271,17 +276,62 @@ class AcpWorker:
         try:
             rpc = LineJsonRpcClient(proc)
             self._initialize(rpc)
-            params: Dict[str, Any] = {
+            base: Dict[str, Any] = {
                 "cwd": task.cwd or self._cwd or ".",
-                "prompt": [{"type": "text", "text": task.intent}],
+                "mcpServers": [],  # ACP 规范必填（dsh-acp 校验）
             }
             if task.session_id:
-                params["sessionId"] = task.session_id
-            result = rpc.request("session/new" if not task.session_id else
-                                 "session/prompt", params,
-                                 timeout_s=min(task.timeout_s, 60))
-            session_id = result.get("sessionId", task.session_id)
-            # session/prompt 持久入队回执后等待 stopReason（长任务）
+                # 续接：session/prompt（prompt 只发给 prompt 请求，不给 session/new）
+                params = dict(base, sessionId=task.session_id,
+                              prompt=[{"type": "text", "text": task.intent}])
+                result = rpc.request("session/prompt", params,
+                                     timeout_s=min(task.timeout_s, 120))
+                session_id = task.session_id
+            else:
+                # 新会话：session/new 只建会话（prompt 不放这里——
+                # 实测 dsh-acp 下 session/new 携带 prompt 会让后续
+                # session/prompt 挂起排队，ADR 沉淀）
+                result = rpc.request("session/new", base,
+                                     timeout_s=min(task.timeout_s, 120))
+                session_id = result.get("sessionId", "")
+                params = dict(base, sessionId=session_id,
+                              prompt=[{"type": "text", "text": task.intent}])
+                result = rpc.request("session/prompt", params,
+                                     timeout_s=min(task.timeout_s, 180))
+            # 同步完成模式：result 直接带 stopReason（dsh-acp 实测）
+            sync_stop = result.get("stopReason", "")
+            if sync_stop:
+                # chunk 通知可能已在 request 期间记账，也可能在 result 之后
+                # 才到（dsh-acp 先发 chunk 再回 result；mock 先回 result 再发
+                # chunk）——先消化已记账的，再 drain 通知流补齐（双兼容）
+                texts = []
+                for n in rpc.notifications:
+                    if n.get("method") == "session/update":
+                        upd = (n.get("params") or {}).get("update") or {}
+                        chunk = (upd.get("content") or {}).get("text", "")
+                        if upd.get("sessionUpdate") == "agent_message_chunk" and chunk:
+                            texts.append(chunk)
+                if not texts:
+                    # drain 通知流直到拿到 chunk 或流结束（短超时）
+                    for msg in rpc._iter_messages(30):
+                        if "id" in msg:
+                            continue
+                        if msg.get("method") == "session/update":
+                            upd = (msg.get("params") or {}).get("update") or {}
+                            chunk = (upd.get("content") or {}).get("text", "")
+                            if upd.get("sessionUpdate") == "agent_message_chunk" and chunk:
+                                texts.append(chunk)
+                if sync_stop not in ("end_turn", ""):
+                    raise WorkerError("PROTOCOL", f"worker stopped: {sync_stop}",
+                                      stderr=rpc._read_stderr())
+                content = "".join(texts)
+                if not content:
+                    raise WorkerError("PROTOCOL",
+                                      "worker completed with empty content",
+                                      stderr=rpc._read_stderr())
+                return WorkerResult(content=content, session_id=session_id,
+                                    worker=self._command[0])
+            # 流式完成模式：等待通知流 chunk + stopReason
             content, stop = self._await_stop(rpc, session_id,
                                              task.timeout_s)
             if stop not in ("end_turn", ""):
@@ -295,12 +345,27 @@ class AcpWorker:
                 proc.stdin.close()
             except OSError:
                 pass
-            proc.wait(timeout=10)
+            try:
+                proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                proc.kill()
 
     def _await_stop(self, rpc: LineJsonRpcClient, session_id: str,
                     timeout_s: int) -> tuple:
-        """等待工兵完成：从通知流提取最终 assistant 文本与 stopReason"""
+        """等待工兵完成：从通知流提取最终 assistant 文本与 stopReason
+
+        先消化 request 期间已记账的 notifications（session/new 后的 chunk
+        可能已进 rpc.notifications），再 drain 通知流，杜绝双读/漏读。
+        """
         stop, texts = "", []
+        # 已记账通知优先（非阻塞，零等待）
+        for n in rpc.notifications:
+            if n.get("method") == "session/update":
+                upd = (n.get("params") or {}).get("update") or {}
+                chunk = (upd.get("content") or {}).get("text", "")
+                if upd.get("sessionUpdate") == "agent_message_chunk" and chunk:
+                    texts.append(chunk)
+        # drain 通知流（含缓冲残余与后续到达）
         for msg in rpc._iter_messages(timeout_s):
             if "id" in msg:
                 continue
